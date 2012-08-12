@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Stack;
 
+
 public abstract class DependencyResolver {
 	private String documentRoot;
 	private String SEP = "/";
@@ -18,14 +19,19 @@ public abstract class DependencyResolver {
 		}
 		this.documentRoot = documentRoot;
 	}
+	
+	public Stack<String> resolvePath(String relativePath) throws IOException {
+		Stack<String> importedPaths = new Stack<String>();
+		Stack<String> resolveStack = new Stack<String>();
+		resolvePath(relativePath, importedPaths, resolveStack);
+		return importedPaths;
+	}
 	/**
 	 * @param relativePath Relative to the document root.
 	 * @throws IOException 
 	 * 
 	 */
-	public Stack<String> resolvePath(String relativePath) throws IOException {
-		Stack<String> importedPaths = new Stack<String>();
-		
+	public void resolvePath(String relativePath, Stack<String> importedPaths, Stack<String> resolveStack) throws IOException {
 		File file = new File(documentRoot + relativePath);
 		String absoluteDirPath = file.getAbsoluteFile().getParent();
 		InputStream in = new FileInputStream(file);
@@ -42,7 +48,13 @@ public abstract class DependencyResolver {
 				importedPath = relatilize(absolutePath);
 				if(!checkCirculation( relativePath, importedPath)) {
 					if(!importedPaths.contains(importedPath)) {
-						importedPaths.addAll(resolvePath(importedPath));
+						if(resolveStack.contains(importedPath)) {
+							resolveStack.push(importedPath);
+							throw new IOException("[æ≤Ã¨“¿¿µº∆À„]¥Ê‘⁄—≠ª∑“¿¿µ£¨«ÎºÏ≤ÈŒƒº˛“¿¿µπÿœµ£¨“¿¿µÀ≥–ÚŒ™" + resolveStack.toString());
+						}
+						resolveStack.push(importedPath);
+						resolvePath(importedPath, importedPaths, resolveStack);
+						resolveStack.pop();
 						importedPaths.push(importedPath);
 					}
 				}
@@ -50,8 +62,12 @@ public abstract class DependencyResolver {
 			}
 			line = reader.readLine();
 		} 
-		return importedPaths;
 	}
+	/**
+	 * Relatilize a absolute path against the document root.
+	 * @param absolutePath
+	 * @return
+	 */
 	private String relatilize(String absolutePath) {
 		return new File(documentRoot).toURI().relativize(new File(absolutePath).toURI()).getPath();
 	}

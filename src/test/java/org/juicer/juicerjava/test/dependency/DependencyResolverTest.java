@@ -15,7 +15,7 @@ public class DependencyResolverTest {
 	@Test
 	public void testResolve() {
 		try {
-			Stack<String> paths = resolver.resolvePath("sub/b.js");
+			Stack<String> paths = resolver.resolvePath("sub/a.js");
 			for(String path : paths) {
 				System.out.println(path);
 			}
