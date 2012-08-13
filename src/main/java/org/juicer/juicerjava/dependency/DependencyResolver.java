@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 
@@ -20,10 +22,19 @@ public abstract class DependencyResolver {
 		this.documentRoot = documentRoot;
 	}
 	
-	public Stack<String> resolvePath(String relativePath) throws IOException {
-		Stack<String> importedPaths = new Stack<String>();
+	public List<String> resolvePath(String relativePath) throws IOException {
+		List<String> importedPaths = new ArrayList<String>();
 		Stack<String> resolveStack = new Stack<String>();
 		resolvePath(relativePath, importedPaths, resolveStack);
+		
+		//Add relativePath to the stack
+		String absolutePath = null;
+		if(relativePath.startsWith("/")) {
+			absolutePath = documentRoot + relativePath.substring(1);
+		} else {
+			absolutePath = documentRoot + relativePath;
+		}
+		importedPaths.add(relatilize(absolutePath));
 		return importedPaths;
 	}
 	/**
@@ -31,7 +42,7 @@ public abstract class DependencyResolver {
 	 * @throws IOException 
 	 * 
 	 */
-	public void resolvePath(String relativePath, Stack<String> importedPaths, Stack<String> resolveStack) throws IOException {
+	public void resolvePath(String relativePath, List<String> importedPaths, Stack<String> resolveStack) throws IOException {
 		File file = new File(documentRoot + relativePath);
 		String absoluteDirPath = file.getAbsoluteFile().getParent();
 		InputStream in = new FileInputStream(file);
@@ -55,7 +66,7 @@ public abstract class DependencyResolver {
 						resolveStack.push(importedPath);
 						resolvePath(importedPath, importedPaths, resolveStack);
 						resolveStack.pop();
-						importedPaths.push(importedPath);
+						importedPaths.add(importedPath);
 					}
 				}
 				

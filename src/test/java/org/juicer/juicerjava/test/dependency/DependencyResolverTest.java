@@ -1,7 +1,7 @@
 package org.juicer.juicerjava.test.dependency;
 
 import java.io.IOException;
-import java.util.Stack;
+import java.util.List;
 
 import org.juicer.juicerjava.dependency.DependencyResolver;
 import org.juicer.juicerjava.dependency.JavaScriptDependencyResolver;
@@ -15,7 +15,7 @@ public class DependencyResolverTest {
 	@Test
 	public void testResolve() {
 		try {
-			Stack<String> paths = resolver.resolvePath("sub/a.js");
+			List<String> paths = resolver.resolvePath("sub/a.js");
 			for(String path : paths) {
 				System.out.println(path);
 			}
