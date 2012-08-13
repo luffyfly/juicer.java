@@ -25,8 +25,10 @@ public abstract class DependencyResolver {
 	public List<String> resolvePath(String relativePath) throws IOException {
 		List<String> importedPaths = new ArrayList<String>();
 		Stack<String> resolveStack = new Stack<String>();
-		resolvePath(relativePath, importedPaths, resolveStack);
 		
+		System.out.println("Computing dependency tree: " + relativePath);
+		
+		resolvePath(relativePath, importedPaths, resolveStack);
 		//Add relativePath to the stack
 		String absolutePath = null;
 		if(relativePath.startsWith("/")) {
@@ -34,7 +36,7 @@ public abstract class DependencyResolver {
 		} else {
 			absolutePath = documentRoot + relativePath;
 		}
-		importedPaths.add(relatilize(absolutePath));
+		importedPaths.add(relatilize(absolutePath, null));
 		return importedPaths;
 	}
 	/**
@@ -56,12 +58,12 @@ public abstract class DependencyResolver {
 				if(importedPath.startsWith("/")) {
 					absolutePath = documentRoot + importedPath.substring(1);
 				}
-				importedPath = relatilize(absolutePath);
+				importedPath = relatilize(absolutePath, null);
 				if(!checkCirculation( relativePath, importedPath)) {
 					if(!importedPaths.contains(importedPath)) {
 						if(resolveStack.contains(importedPath)) {
 							resolveStack.push(importedPath);
-							throw new IOException("[¾²Ì¬ÒÀÀµ¼ÆËã]´æÔÚÑ­»·ÒÀÀµ£¬Çë¼ì²éÎÄ¼şÒÀÀµ¹ØÏµ£¬ÒÀÀµË³ĞòÎª" + resolveStack.toString());
+							throw new IOException("[é™æ€ä¾èµ–è®¡ç®—]å­˜åœ¨å¾ªç¯ä¾èµ–ï¼Œè¯·æ£€æŸ¥æ–‡ä»¶ä¾èµ–å…³ç³»ï¼Œä¾èµ–é¡ºåºä¸º" + resolveStack.toString());
 						}
 						resolveStack.push(importedPath);
 						resolvePath(importedPath, importedPaths, resolveStack);
@@ -75,12 +77,15 @@ public abstract class DependencyResolver {
 		} 
 	}
 	/**
-	 * Relatilize a absolute path against the document root.
+	 * Relatilize a absolute path against staticRoot.
 	 * @param absolutePath
 	 * @return
 	 */
-	private String relatilize(String absolutePath) {
-		return new File(documentRoot).toURI().relativize(new File(absolutePath).toURI()).getPath();
+	public String relatilize(String absolutePath, String staticRoot) {
+		if(staticRoot == null) {
+			staticRoot = documentRoot;
+		}
+		return new File(staticRoot).toURI().relativize(new File(absolutePath).toURI()).getPath();
 	}
 	/**
 	 * Check circular dependency

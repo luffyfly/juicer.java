@@ -1,7 +1,15 @@
 package org.juicer.juicerjava.importer;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,18 +23,36 @@ public class JavaScriptImporter {
 	private static final String SEP = "/";
 	//Matches #javascripts("arg1", "arg2") in velocity, the group 1 is "arg1", "arg2"
 	private static final String vmJavaScriptsPattern = "#javascripts\\(\\[(((?:'[^']*'|\"[^\"]*\"),\\s*)*(?:'[^']*'|\"[^\"]*\"\\s*){1})\\]\\)";
-	private static final String JUICER_CMD = "juicer";
+	private static String JUICER_CMD = "juicer";
 	private String documentRoot;
 	private String assetsRoot;
+	private String staticRoot;
 	private static DependencyResolver dependencyResolver = null;
 	
-	public JavaScriptImporter(String assetsRoot, String documentRoot) {
-		super();
-		this.documentRoot = documentRoot;
-		if(!assetsRoot.endsWith(SEP)) {
-			assetsRoot += SEP;
+	static {
+		String osName = System.getProperty("os.name");
+		if(osName.indexOf("Windows") >= 0) {
+			JUICER_CMD += ".bat";
 		}
-		this.assetsRoot = assetsRoot;
+	}
+	/*
+	 * 
+	 */
+	public JavaScriptImporter(String assetsURL, String documentRoot, String staticRoot) {
+		super();
+		
+		if(!documentRoot.endsWith(SEP)) {
+			documentRoot += SEP;
+		}
+		if(!assetsURL.endsWith(SEP)) {
+			assetsURL += SEP;
+		}
+		if(!staticRoot.endsWith(SEP)) {
+			staticRoot += SEP;
+		}
+		this.assetsRoot = assetsURL;
+		this.documentRoot = documentRoot;
+		this.staticRoot = staticRoot;
 		dependencyResolver = new JavaScriptDependencyResolver(this.documentRoot);
 	}
 	
@@ -40,8 +66,8 @@ public class JavaScriptImporter {
 		return scriptTags;
 	}
 	/**
-	 * ¼ÆËãpathsÖĞÂ·¾¶Ö¸ÏòµÄËùÓĞjsµÄÒÀÀµ£¬·µ»ØÕû¸öÒÀÀµµÄjsÊı×é×Ö´®¡£
-	 * ÔÚÄ£°åÎÄ¼şÖĞµ÷ÓÃÕû¸ö·½·¨£¬
+	 * è®¡ç®—pathsä¸­è·¯å¾„æŒ‡å‘çš„æ‰€æœ‰jsçš„ä¾èµ–ï¼Œè¿”å›æ•´ä¸ªä¾èµ–çš„jsæ•°ç»„å­—ä¸²ã€‚
+	 * åœ¨æ¨¡æ¿æ–‡ä»¶ä¸­è°ƒç”¨æ•´ä¸ªæ–¹æ³•ï¼Œ
 	 * @param paths
 	 * @return
 	 * @throws IOException 
@@ -65,21 +91,48 @@ public class JavaScriptImporter {
 		return result;
 	}
 	
-	public boolean compileJSLoaderInVM(String vmPath) {
+	public boolean compileJSLoaderInVM(String vmPath, String outputPath, String jsOutputPath) throws IOException {
 		Pattern pattern = Pattern.compile(vmJavaScriptsPattern);
-		
-		Matcher matcher = pattern.matcher("#javascripts(['1', '3', 'test.js', 't.js'])");
-		List<String> jsPaths = new ArrayList<String>();
-		while (matcher.find()) {
-			String pathStr = matcher.group(1);
-			int start = matcher.start();
-			int end = matcher.end();
-			for(String path : pathStr.split(",\\s*")) {
-				path = path.trim();
-				path = path.replace("'", "").replace("\"", "");
-				jsPaths.add(path);
+		InputStream in = null;
+		FileWriter out = null;
+		try {
+			in = new FileInputStream(new File(vmPath));
+			out = new FileWriter(new File(outputPath));
+			
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+			BufferedWriter writer = new BufferedWriter(out);
+			
+			String line = reader.readLine();
+			int lineNum = 0;
+			while(line != null) {
+				Matcher matcher = pattern.matcher(line);
+				List<String> jsPaths = new ArrayList<String>();
+				while (matcher.find()) {
+					String pathStr = matcher.group(1);
+					int start = matcher.start();
+					int end = matcher.end();
+					for(String path : pathStr.split(",\\s*")) {
+						path = path.trim();
+						path = path.replace("'", "").replace("\"", "");
+						jsPaths.add(path);
+					}
+					System.out.println("Compiling " + vmPath + ", line " + lineNum + ", JS:" + jsPaths.toString());
+					line = line.substring(0, start) + compileJS(jsPaths, jsOutputPath) + line.substring(end, line.length());
+				}
+				line += 1;
+				writer.write(line);
+				writer.newLine();
+				line = reader.readLine();
+			}
+			writer.flush();
+		}  finally {
+			if(in != null) {
+				in.close();
 			}
 			
+			if(out != null) {
+				out.close();
+			}
 		}
 		
 		return true;
@@ -90,8 +143,61 @@ public class JavaScriptImporter {
 	 * @param jsPaths
 	 * @param start
 	 * @param end
+	 * @return 
+	 * @throws IOException 
 	 */
-	private void compileJS(List<String> jsPaths) {
+	private String compileJS(List<String> jsPaths, String jsOutputPath) throws IOException {
+		String tmpPath = getTmpPath(".js");
+		BufferedWriter writer = new BufferedWriter(new FileWriter(tmpPath));
+		writer.write("/**");
+		writer.newLine();
+		for(String path : jsPaths) {
+			writer.write("@depend " + path);
+			writer.newLine();
+		}
+		writer.write("**/");
+		writer.flush();
+		writer.close();
 		
+		File file = new File(tmpPath);
+		tmpPath = file.getAbsolutePath();
+		String cmd = JUICER_CMD + " merge " + tmpPath + " -o " + jsOutputPath;
+		Process process = Runtime.getRuntime().exec(cmd);
+		int exitVal = 0;
+		try {
+			exitVal = process.waitFor();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			exitVal = -1;
+			e.printStackTrace();
+		} finally {
+			if(file.exists()) {
+				file.delete();
+			}
+		}
+		if(exitVal != 0) {
+			throw new IOException("[ç¼–è¯‘VMæ–‡ä»¶]ç¼–è¯‘æ–‡ä»¶" + jsPaths.toString() + "å‡ºé”™");
+		}
+		
+		return dependencyResolver.relatilize(jsOutputPath, staticRoot);
 	}
+	/**
+	 * Get a temporary path for temporary usage.
+	 * @return
+	 */
+	private String getTmpPath(String ext) {
+		File file = null;
+		String path = null;
+		int count = 0;
+		do {
+			path = documentRoot;
+			path += "tmp_" + String.valueOf(new Date().getTime());
+			path += "_" + count;
+			path += ext;
+			file = new File(path);
+			count += 1;
+		} while(file.exists());
+		return path;
+	}
+	
 }
