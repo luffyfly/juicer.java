@@ -63,7 +63,7 @@ public abstract class DependencyResolver {
 					if(!importedPaths.contains(importedPath)) {
 						if(resolveStack.contains(importedPath)) {
 							resolveStack.push(importedPath);
-							throw new IOException("[静态依赖计算]存在循环依赖，请检查文件依赖关系，依赖顺序为" + resolveStack.toString());
+							throw new IOException("[闈欐�渚濊禆璁＄畻]瀛樺湪寰幆渚濊禆锛岃妫�煡鏂囦欢渚濊禆鍏崇郴锛屼緷璧栭『搴忎负" + resolveStack.toString());
 						}
 						resolveStack.push(importedPath);
 						resolvePath(importedPath, importedPaths, resolveStack);
