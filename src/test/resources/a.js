@@ -1,4 +1,4 @@
 /**
- * @depend b.js
+ * @depend c.js
  *
  */ 
