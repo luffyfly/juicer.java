@@ -70,29 +70,35 @@ public class JavaScriptImporter {
 		return scriptTags;
 	}
 	/**
-	 * 计算paths中路径指向的所有js的依赖，返回整个依赖的js数组字串。
-	 * 在模板文件中调用整个方法，
+	 * 璁＄畻paths涓矾寰勬寚鍚戠殑鎵�湁js鐨勪緷璧栵紝杩斿洖鏁翠釜渚濊禆鐨刯s鏁扮粍瀛椾覆銆�
+	 * 鍦ㄦā鏉挎枃浠朵腑璋冪敤鏁翠釜鏂规硶锛�
 	 * @param paths
 	 * @return
 	 * @throws IOException 
 	 */
 	public String calculateDeps(String[] paths) throws IOException {
 		String result = null;
-		Set<String> allDeps = new HashSet<String>();
+		List<String> allDeps = new ArrayList<String>();
 		for(String path : paths) {
 			List<String> deps = dependencyResolver.resolvePath(path);
-			allDeps.addAll(deps);
+			for(String dep : deps) {
+				if(!allDeps.contains(dep)) {
+					allDeps.add(dep);
+				}
+			}
+			
 		}
-		for(String dep: allDeps) {
+		
+		for(String dep : allDeps) {
 			if(result == null) {
-				result = "[" + "\"" + dep + "\"";
+				result = "["  + "\"" + assetsRoot + dep + "\"";
 			} else {
-				result += ",\"" + dep + "\"";
+				result += "," +  "\"" + assetsRoot + dep + "\"";
 			}
 			
 		}
 		result += "]";
-		return result;
+		return result; 
 	}
 	
 	public boolean compileJSLoaderInVM(String vmPath, String outputPath, String jsOutputPath) throws IOException {
@@ -180,7 +186,7 @@ public class JavaScriptImporter {
 			}
 		}
 		if(exitVal != 0) {
-			throw new IOException("[编译VM文件]编译文件" + jsPaths.toString() + "出错");
+			throw new IOException("[缂栬瘧VM鏂囦欢]缂栬瘧鏂囦欢" + jsPaths.toString() + "鍑洪敊");
 		}
 		
 		return dependencyResolver.relatilize(jsOutputPath, staticRoot);
