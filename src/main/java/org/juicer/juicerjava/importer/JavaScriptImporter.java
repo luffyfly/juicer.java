@@ -15,11 +15,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.log4j.Logger;
 
 import org.juicer.juicerjava.dependency.DependencyResolver;
 import org.juicer.juicerjava.dependency.JavaScriptDependencyResolver;
 
 public class JavaScriptImporter {
+	
+	private static final Logger logger = Logger.getLogger(JavaScriptImporter.class);
+	
 	private static final String SEP = "/";
 	//Matches #javascripts("arg1", "arg2") in velocity, the group 1 is "arg1", "arg2"
 	private static final String vmJavaScriptsPattern = "#javascripts\\(\\[(((?:'[^']*'|\"[^\"]*\"),\\s*)*(?:'[^']*'|\"[^\"]*\"\\s*){1})\\]\\)";
@@ -72,7 +76,7 @@ public class JavaScriptImporter {
 	 * @return
 	 * @throws IOException 
 	 */
-	public String calculateDeps(List<String> paths) throws IOException {
+	public String calculateDeps(String[] paths) throws IOException {
 		String result = null;
 		Set<String> allDeps = new HashSet<String>();
 		for(String path : paths) {
@@ -116,7 +120,7 @@ public class JavaScriptImporter {
 						path = path.replace("'", "").replace("\"", "");
 						jsPaths.add(path);
 					}
-					System.out.println("Compiling " + vmPath + ", line " + lineNum + ", JS:" + jsPaths.toString());
+					logger.info("Compiling " + vmPath + ", line " + lineNum + ", JS:" + jsPaths.toString());
 					line = line.substring(0, start) + compileJS(jsPaths, jsOutputPath) + line.substring(end, line.length());
 				}
 				line += 1;

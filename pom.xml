@@ -21,5 +21,10 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.directory.studio</groupId>
+    	<artifactId>org.apache.logging.log4j</artifactId>
+    	<version>1.2.14</version>
+    </dependency>
   </dependencies>
 </project>
