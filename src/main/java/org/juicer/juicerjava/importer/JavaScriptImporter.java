@@ -76,23 +76,29 @@ public class JavaScriptImporter {
 	 * @return
 	 * @throws IOException 
 	 */
-	public String calculateDeps(String[] paths) throws IOException {
+	public String calculateDeps(List<String> paths) throws IOException {
 		String result = null;
-		Set<String> allDeps = new HashSet<String>();
+		List<String> allDeps = new ArrayList<String>();
 		for(String path : paths) {
 			List<String> deps = dependencyResolver.resolvePath(path);
-			allDeps.addAll(deps);
+			for(String dep : deps) {
+				if(!allDeps.contains(dep)) {
+					allDeps.add(dep);
+				}
+			}
+			
 		}
-		for(String dep: allDeps) {
+		
+		for(String dep : allDeps) {
 			if(result == null) {
-				result = "[" + "\"" + dep + "\"";
+				result = "["  + "\"" + assetsRoot + dep + "\"";
 			} else {
-				result += ",\"" + dep + "\"";
+				result += "," +  "\"" + assetsRoot + dep + "\"";
 			}
 			
 		}
 		result += "]";
-		return result;
+		return result; 
 	}
 	
 	public boolean compileJSLoaderInVM(String vmPath, String outputPath, String jsOutputPath) throws IOException {
